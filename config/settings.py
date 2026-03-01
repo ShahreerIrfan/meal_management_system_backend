@@ -92,22 +92,22 @@ WSGI_APPLICATION = "config.wsgi.application"
 _db_url = config("DATABASE_URL", default="")
 
 if _db_url:
+    # Remove channel_binding param if present (not supported by psycopg2)
+    _clean_url = _db_url.replace("&channel_binding=require", "").replace("?channel_binding=require&", "?")
     DATABASES = {
         "default": dj_database_url.config(
-            default=_db_url,
+            default=_clean_url,
             conn_max_age=600,
             conn_health_checks=True,
+            ssl_require=True,
         )
     }
 else:
-    # Local dev or Vercel without DATABASE_URL: use SQLite
-    # On Vercel, /tmp is the only writable directory (data is ephemeral!)
-    _on_vercel = config("VERCEL", default=False, cast=bool)
-    _sqlite_path = "/tmp/db.sqlite3" if _on_vercel else str(BASE_DIR / "db.sqlite3")
+    # Local dev fallback: use SQLite
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
-            "NAME": _sqlite_path,
+            "NAME": str(BASE_DIR / "db.sqlite3"),
         }
     }
 
