@@ -6,6 +6,13 @@ import logging
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
+# Debug: log whether DATABASE_URL is set on Vercel
+_db_url = os.environ.get("DATABASE_URL", "")
+if _db_url:
+    print(f"[Vercel] DATABASE_URL is SET ({_db_url[:40]}...)")
+else:
+    print("[Vercel] WARNING: DATABASE_URL is NOT SET — will fall back to SQLite!")
+
 import django
 django.setup()
 
@@ -15,6 +22,7 @@ logger = logging.getLogger(__name__)
 try:
     from django.core.management import call_command
     call_command("migrate", "--noinput", verbosity=0)
+    logger.info("Migrations applied successfully")
 except Exception as e:
     logger.warning("Auto-migrate skipped: %s", e)
 
