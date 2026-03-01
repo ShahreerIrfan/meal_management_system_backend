@@ -87,23 +87,26 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 #    
 # ---------------------------------------------------------------------------
-# Database – SQLite (default) / PostgreSQL (production)
+# Database – PostgreSQL (production) / SQLite (local dev fallback)
 # ---------------------------------------------------------------------------
-_db_url = config("DATABASE_URL", default="")
+# Use os.environ directly (python-decouple may not pick up Vercel env vars)
+_db_url = os.environ.get("DATABASE_URL", "") or config("DATABASE_URL", default="")
+
+# Strip channel_binding param (unsupported by psycopg2)
+if _db_url and "channel_binding" in _db_url:
+    _db_url = _db_url.replace("&channel_binding=require", "").replace("?channel_binding=require&", "?")
 
 if _db_url:
-    # Remove channel_binding param if present (not supported by psycopg2)
-    _clean_url = _db_url.replace("&channel_binding=require", "").replace("?channel_binding=require&", "?")
     DATABASES = {
         "default": dj_database_url.config(
-            default=_clean_url,
+            default=_db_url,
             conn_max_age=600,
             conn_health_checks=True,
             ssl_require=True,
         )
     }
 else:
-    # Local dev fallback: use SQLite
+    # Local dev fallback only — will NOT persist on Vercel!
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
