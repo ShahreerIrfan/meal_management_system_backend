@@ -20,17 +20,28 @@ class RegisterView(generics.CreateAPIView):
     permission_classes = [permissions.AllowAny]
 
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.save()
-        return Response(
-            {
-                "success": True,
-                "user": UserSerializer(user).data,
-                "message": "Registration successful. Please login.",
-            },
-            status=status.HTTP_201_CREATED,
-        )
+        try:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            user = serializer.save()
+            return Response(
+                {
+                    "success": True,
+                    "user": UserSerializer(user).data,
+                    "message": "Registration successful. Please login.",
+                },
+                status=status.HTTP_201_CREATED,
+            )
+        except Exception as e:
+            import traceback
+            return Response(
+                {
+                    "success": False,
+                    "errors": {"detail": str(e)},
+                    "traceback": traceback.format_exc(),
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 class ProfileView(generics.RetrieveUpdateAPIView):
