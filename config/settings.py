@@ -220,15 +220,25 @@ USE_TZ = True
 # Static / Media
 # ---------------------------------------------------------------------------
 STATIC_URL = "static/"
-STATIC_ROOT = BASE_DIR / "staticfiles"
+# Vercel has a read-only filesystem; use /tmp for writable paths
+_ON_VERCEL = config("VERCEL", default=False, cast=bool)
+if _ON_VERCEL:
+    STATIC_ROOT = "/tmp/staticfiles"
+    MEDIA_ROOT = "/tmp/media"
+else:
+    STATIC_ROOT = BASE_DIR / "staticfiles"
+    MEDIA_ROOT = BASE_DIR / "media"
+
 STORAGES = {
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
     },
 }
 
 MEDIA_URL = "media/"
-MEDIA_ROOT = BASE_DIR / "media"
+
+# WhiteNoise: serve static files from finders in dev / when collectstatic isn't run
+WHITENOISE_USE_FINDERS = True
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
