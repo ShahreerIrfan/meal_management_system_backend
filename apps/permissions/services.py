@@ -9,7 +9,12 @@ from .models import AppPermission, MemberPermission, PERMISSION_SEED
 
 def seed_permissions():
     """Idempotent: create all master permissions from PERMISSION_SEED."""
-    for codename, label, module in PERMISSION_SEED:
+    # Check if already seeded (fast path)
+    existing = set(AppPermission.objects.values_list("codename", flat=True))
+    needed = [(c, l, m) for c, l, m in PERMISSION_SEED if c not in existing]
+    if not needed:
+        return
+    for codename, label, module in needed:
         AppPermission.objects.update_or_create(
             codename=codename,
             defaults={"label": label, "module": module},
@@ -17,15 +22,23 @@ def seed_permissions():
 
 
 def assign_all_permissions(membership: FlatMembership, granted_by=None):
-    """Give a membership every permission (used for owners)."""
-    all_perms = AppPermission.objects.all()
-    with transaction.atomic():
-        for perm in all_perms:
-            MemberPermission.objects.get_or_create(
-                membership=membership,
-                permission=perm,
-                defaults={"granted_by": granted_by or membership.user},
-            )
+    """Give a membership every permission (used for owners). Bulk operation."""
+    all_perms = list(AppPermission.objects.all())
+    existing_perm_ids = set(
+        MemberPermission.objects.filter(membership=membership)
+        .values_list("permission_id", flat=True)
+    )
+    to_create = [
+        MemberPermission(
+            membership=membership,
+            permission=perm,
+            granted_by=granted_by or membership.user,
+        )
+        for perm in all_perms
+        if perm.id not in existing_perm_ids
+    ]
+    if to_create:
+        MemberPermission.objects.bulk_create(to_create, ignore_conflicts=True)
 
 
 def set_permissions(

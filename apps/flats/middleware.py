@@ -19,9 +19,18 @@ class FlatContextMiddleware(MiddlewareMixin):
     we manually parse the JWT token here to get the user.
     """
 
+    # Skip JWT parsing for these paths (no auth needed)
+    SKIP_PATHS = ("/health", "/api/v1/auth/login", "/api/v1/auth/register",
+                  "/api/v1/auth/token", "/api/v1/flats/invite/", "/favicon")
+
     def process_request(self, request):
         request.flat = None
         request.membership = None
+
+        # Skip expensive JWT parsing for public endpoints
+        path = request.path
+        if any(path.startswith(p) for p in self.SKIP_PATHS):
+            return
 
         user = getattr(request, "user", None)
 

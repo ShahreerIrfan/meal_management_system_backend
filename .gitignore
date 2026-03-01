@@ -37,3 +37,4 @@ venv/
 .venv/
 env/
 .vercel
+.env*.local

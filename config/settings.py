@@ -55,13 +55,11 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
-    "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
-    "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "apps.flats.middleware.FlatContextMiddleware",
 ]
 
@@ -97,11 +95,13 @@ if _db_url and "channel_binding" in _db_url:
     _db_url = _db_url.replace("&channel_binding=require", "").replace("?channel_binding=require&", "?")
 
 if _db_url:
+    # conn_max_age=0 for serverless (Vercel) — connections can't persist
+    _on_vercel = os.environ.get("VERCEL", "")
     DATABASES = {
         "default": dj_database_url.config(
             default=_db_url,
-            conn_max_age=600,
-            conn_health_checks=True,
+            conn_max_age=0 if _on_vercel else 600,
+            conn_health_checks=not _on_vercel,
             ssl_require=True,
         )
     }
