@@ -14,7 +14,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Core
 # ---------------------------------------------------------------------------
 SECRET_KEY = config("SECRET_KEY", default="django-insecure-dev-only")
-DEBUG = config("DEBUG", default=False, cast=bool)
+DEBUG = config("DEBUG", default=True, cast=bool)
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1,.vercel.app,meal-management-system-backend-zcpt.vercel.app", cast=Csv())
 
 # ---------------------------------------------------------------------------
