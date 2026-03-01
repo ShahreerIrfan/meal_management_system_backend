@@ -89,22 +89,26 @@ WSGI_APPLICATION = "config.wsgi.application"
 # ---------------------------------------------------------------------------
 # Database – SQLite (default) / PostgreSQL (production)
 # ---------------------------------------------------------------------------
-_db_url = config("DATABASE_URL", default="sqlite:///" + str(BASE_DIR / "db.sqlite3"))
+_db_url = config("DATABASE_URL", default="")
 
-if _db_url.startswith("sqlite"):
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
-    }
-else:
+if _db_url:
     DATABASES = {
         "default": dj_database_url.config(
             default=_db_url,
             conn_max_age=600,
             conn_health_checks=True,
         )
+    }
+else:
+    # Local dev or Vercel without DATABASE_URL: use SQLite
+    # On Vercel, /tmp is the only writable directory (data is ephemeral!)
+    _on_vercel = config("VERCEL", default=False, cast=bool)
+    _sqlite_path = "/tmp/db.sqlite3" if _on_vercel else str(BASE_DIR / "db.sqlite3")
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": _sqlite_path,
+        }
     }
 
 # ---------------------------------------------------------------------------
